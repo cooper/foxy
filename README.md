@@ -1,0 +1,4 @@
+foxy
+====
+
+Perl IRC bot
