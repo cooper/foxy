@@ -1,0 +1,12 @@
+[submodule "lib/api-engine"]
+	path = lib/api-engine
+	url = https://github.com/cooper/api-engine.git
+[submodule "lib/evented-object"]
+	path = lib/evented-object
+	url = https://github.com/cooper/evented-object.git
+[submodule "lib/evented-configuration"]
+	path = lib/evented-configuration
+	url = https://github.com/cooper/evented-configuration.git
+[submodule "lib/evented-irc"]
+	path = lib/evented-irc
+	url = https://github.com/cooper/evented-irc.git
