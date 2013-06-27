@@ -31,8 +31,8 @@ our $om;
 sub init {
 
     # create Net::Async::Omegle object.
-    $om = $main::om = Net::Async::Omegle->new();
-    $main::loop->add($main::om);
+    $om = $Foxy::om = $main::om = Net::Async::Omegle->new();
+    $Foxy::loop->add($Foxy::om);
     
     # fetch Omegle status information for the first time.
     $om->update;
@@ -44,10 +44,10 @@ sub init {
     my $events_base = $mod->{api}->get_module('Omegle.EventsBase') or return;
     $events_base->register_base('OmegleEvents') or return;
 
-    # copy Bot methods.
-    *Bot::om_say       = *om_say;
-    *Bot::om_connected = *om_connected;
-    *Bot::om_running   = *om_running;
+    # copy Foxy methods.
+    *Foxy::om_say       = *om_say;
+    *Foxy::om_connected = *om_connected;
+    *Foxy::om_running   = *om_running;
 
     return 1;
 }
@@ -57,11 +57,12 @@ sub void {
 
     $main::loop->remove($om);
     undef $main::om;
+    undef $Foxy::om;
     undef $om;
     
-    undef *Bot::om_say;
-    undef *Bot::om_connected;
-    undef *Bot::om_running;
+    undef *Foxy::om_say;
+    undef *Foxy::om_connected;
+    undef *Foxy::om_running;
     
     return 1;
     

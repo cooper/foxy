@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 
 our %dir;
 BEGIN {
