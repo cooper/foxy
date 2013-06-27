@@ -8,7 +8,7 @@ use utf8;
 use API::Module;
 
 BEGIN {
-    my $dir = "$main::Bin/../lib/net-async-omegle";
+    my $dir = "$Foxy::dir{lib}/net-async-omegle";
     
     # add Net::Async::Omegle submodule directory if needed.
     if (!($dir ~~ @INC)) {

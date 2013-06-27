@@ -1,12 +1,13 @@
 #!/usr/bin/perl
 # Copyright (c) 2013, Mitchell Cooper
+our ($loop, $api, $irc, $foxy, $bot, $conf, $config);
 package Foxy;
 
 use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 our %dir;
 BEGIN {
@@ -77,6 +78,10 @@ sub bot_init {
         sasl_user => conf('irc', 'sasl_user'),
         sasl_pass => conf('irc', 'sasl_pass')
     );
+    
+    # compatibility with older modules.
+($main::loop, $main::api, $main::irc, $main::foxy, $main::bot, $main::conf, $main::config) =
+($loop,       $api,       $irc,       $foxy,       $foxy,      $conf,       $conf        );
     
     # load configuration modules.
     load_api_modules();
