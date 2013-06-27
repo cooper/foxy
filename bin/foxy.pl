@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 our %dir;
 BEGIN {
@@ -32,9 +32,9 @@ use IO::Async::Stream;
 
 use Evented::Object;
 use Evented::Configuration;
-use API;
 use Evented::IRC;
 use Evented::IRC::Async;
+use API;
 
 use parent 'Evented::Object';
 
