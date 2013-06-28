@@ -1,5 +1,6 @@
 # Copyright (c) 2013 Mitchell Cooper
 # Provides an interface for CPAN
+# FIXME: this will crash if there are any HTTP errors because $response will be undef.
 package API::Module::CPAN;
 
 use warnings;
@@ -12,7 +13,7 @@ our $IDX = 'http://cpanidx.org/cpanidx';
 
 our $mod = API::Module->new(
     name          => 'CPAN',
-    version       => '1.6',
+    version       => '1.7',
     description   => 'provides an interface for the Comprehensive Perl Archive Network',
     depends_perl  => ['JSON'],
     depends_bases => ['Commands', 'HTTP'],
@@ -283,6 +284,7 @@ sub cmd_cpanmirrors {
         uri      => "$IDX/json/mirrors",
         callback => sub {
             my ($event, $response) = @_;
+            
             my $info = decode_json($response->content);
             my $num  = scalar @$info;
             
@@ -295,15 +297,20 @@ sub cmd_cpanmirrors {
             # find a match.
             my $mirror;
             foreach my $dst (@$info) {
-                next unless $dst->{hostname} =~ m/$args[0]/;
+                next unless do {
+                    $@ = 0;
+                    my $e = eval { $dst->{hostname} =~ m/$args[0]/ };
+                    if ($@) { $channel->send_privmsg("$$user: invalid expression") and return }
+                    $e;
+                };
                 $mirror = $dst;
                 last;
             }
             
-            my $hoster    = $mirror->{dst_organisation} ? " by $$mirror{dst_organisation}" : q();
-            my $location  = $mirror->{dst_location} ? " in $$mirror{dst_location}" : q();
-            my $bandwidth = $mirror->{dst_bandwidth} ? " with $$mirror{dst_bandwidth} bandwidth" : q();
-            my $updated   = $mirror->{frequency} ? " and is updated $$mirror{frequency}" : q();
+            my $hoster    = $mirror->{dst_organisation} ? " by $$mirror{dst_organisation}"              : q();
+            my $location  = $mirror->{dst_location}     ? " in $$mirror{dst_location}"                  : q();
+            my $bandwidth = $mirror->{dst_bandwidth}    ? " with $$mirror{dst_bandwidth} bandwidth"     : q();
+            my $updated   = $mirror->{frequency}        ? " and is updated $$mirror{frequency}"         : q();
             
             $channel->send_privmsg("$$user: \2$$mirror{hostname}\2 is hosted$hoster$location$bandwidth$updated.");
         }
