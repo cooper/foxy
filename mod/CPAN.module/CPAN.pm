@@ -13,7 +13,7 @@ our $IDX = 'http://cpanidx.org/cpanidx';
 
 our $mod = API::Module->new(
     name          => 'CPAN',
-    version       => '1.7',
+    version       => '1.8',
     description   => 'provides an interface for the Comprehensive Perl Archive Network',
     depends_perl  => ['JSON'],
     depends_bases => ['Commands', 'HTTP'],
@@ -23,37 +23,37 @@ our $mod = API::Module->new(
 
 # command handlers.
 my %commands = (
-    cpandists => {
+    'cpan.dists' => {
         description => 'query the number of distributions a CPAN author has',
         callback    => \&cmd_cpandists,
         name        => 'cpan.command.cpandists'
     },
-    cpanauth => {
+    'cpan.auth' => {
         description => 'fetch information about a CPAN author',
         callback    => \&cmd_cpanauth,
         name        => 'cpan.command.cpanauth'
     },
-    cpanmod => {
+    'cpan.mod' => {
         description => 'fetch information about a CPAN module',
         callback    => \&cmd_cpanmod,
         name        => 'cpan.command.cpanmod'
     },
-    cpandist => {
+    'cpan.dist' => {
         description => 'fetch information about a CPAN distribution',
         callback    => \&cmd_cpandist,
         name        => 'cpan.command.cpandist'
     },
-    cpancore => {
+    'cpan.core' => {
         description => 'fetch information about a core perl module',
         callback    => \&cmd_cpancore,
         name        => 'cpan.command.cpancore'
     },
-    cpanmirrors => {
+    'cpan.mirrors' => {
         description => 'query the number of CPAN mirrors',
         callback    => \&cmd_cpanmirrors,
         name        => 'cpan.command.cpanmirrors'
     },
-    cpanmirror => {
+    'cpan.mirror' => {
         description => 'fetches information about a CPAN mirror',
         callback    => \&cmd_cpanmirrors,
         name        => 'cpan.command.cpanmirror'
@@ -85,7 +85,7 @@ sub cmd_cpandists {
     
     # not enough args.
     if (!scalar @args) {
-        $channel->send_privmsg("$$user: cpandists queries the number of dists the specified author has.");
+        $channel->send_privmsg("$$user: cpan.dists queries the number of dists the specified author has.");
         return;
     }
     
@@ -130,7 +130,7 @@ sub cmd_cpanauth {
     
     # not enough args.
     if (!scalar @args) {
-        $channel->send_privmsg("$$user: cpanauth fetches author information.");
+        $channel->send_privmsg("$$user: cpan.auth fetches author information.");
         return;
     }
     
@@ -164,7 +164,7 @@ sub cmd_cpanmod {
     
     # not enough args.
     if (!scalar @args) {
-        $channel->send_privmsg("$$user: cpanmod fetches module information.");
+        $channel->send_privmsg("$$user: cpan.mod fetches module information.");
         return;
     }
     
@@ -199,7 +199,7 @@ sub cmd_cpandist {
     
     # not enough args.
     if (!scalar @args) {
-        $channel->send_privmsg("$$user: cpandist fetches distribution information.");
+        $channel->send_privmsg("$$user: cpan.dist fetches distribution information.");
         return;
     }
     
@@ -233,7 +233,7 @@ sub cmd_cpancore {
     
     # not enough args.
     if (!scalar @args) {
-        $channel->send_privmsg("$$user: cpancore fetches information about core Perl modules.");
+        $channel->send_privmsg("$$user: cpan.core fetches information about core Perl modules.");
         return;
     }
     
@@ -305,6 +305,12 @@ sub cmd_cpanmirrors {
                 };
                 $mirror = $dst;
                 last;
+            }
+            
+            # no mirror matched.
+            if (!$mirror) {
+                $channel->send_privmsg("$$user: No mirror matched that expression.");
+                return;
             }
             
             my $hoster    = $mirror->{dst_organisation} ? " by $$mirror{dst_organisation}"              : q();

@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '1.2';
+our $VERSION = '1.3';
 
 our %dir;
 BEGIN {
@@ -115,10 +115,18 @@ sub apply_irc_handlers {
         my ($event, $user, $channel, $message) = @_;
         return unless $channel->isa('Evented::IRC::Channel'); # ignore PMs for now.
         return if !defined $message || !length $message;
+        my @args = split /\s/, $message;
         
-        my $command = lc((split /\s/, $message)[0]);
+        # bot addressed.
+        if ($args[0] =~ m/^\Q$$irc{me}{nick}\E[\.:\,;]$/) {
+            my $command = lc $args[1];
+               @args    = @args[2..$#args];
+            $foxy->fire("command_$command" => $user, $channel, @args);
+            return 1;
+        }
+        
+        my $command = lc $args[0];
         $command    =~ m/^\!(\w+)$/ or return; $command = $1;
-        my @args    = split /\s/, $message;
         @args       = @args[1..$#args];
         
         # fire command.
