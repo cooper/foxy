@@ -12,7 +12,7 @@ our $IDX = 'http://cpanidx.org/cpanidx';
 
 our $mod = API::Module->new(
     name          => 'CPAN',
-    version       => '1.5',
+    version       => '1.6',
     description   => 'provides an interface for the Comprehensive Perl Archive Network',
     depends_perl  => ['JSON'],
     depends_bases => ['Commands', 'HTTP'],
@@ -51,6 +51,11 @@ my %commands = (
         description => 'query the number of CPAN mirrors',
         callback    => \&cmd_cpanmirrors,
         name        => 'cpan.command.cpanmirrors'
+    },
+    cpanmirror => {
+        description => 'fetches information about a CPAN mirror',
+        callback    => \&cmd_cpanmirrors,
+        name        => 'cpan.command.cpanmirror'
     }
 );
 
@@ -280,7 +285,27 @@ sub cmd_cpanmirrors {
             my ($event, $response) = @_;
             my $info = decode_json($response->content);
             my $num  = scalar @$info;
-            $channel->send_privmsg("$$user: There are \2$num\2 official CPAN mirrors.");
+            
+            # just the number.
+            if (!scalar @args) {
+                $channel->send_privmsg("$$user: There are \2$num\2 official CPAN mirrors.");
+                return 1;
+            }
+            
+            # find a match.
+            my $mirror;
+            foreach my $dst (@$info) {
+                next unless $dst->{hostname} =~ m/$args[0]/;
+                $mirror = $dst;
+                last;
+            }
+            
+            my $hoster    = $mirror->{dst_organisation} ? " by $$mirror{dst_organisation}" : q();
+            my $location  = $mirror->{dst_location} ? " in $$mirror{dst_location}" : q();
+            my $bandwidth = $mirror->{dst_bandwidth} ? " with $$mirror{dst_bandwidth} bandwidth" : q();
+            my $updated   = $mirror->{frequency} ? " and is updated $$mirror{frequency}" : q();
+            
+            $channel->send_privmsg("$$user: \2$$mirror{hostname}\2 is hosted$hoster$location$bandwidth$updated.");
         }
     );
 }
