@@ -1,4 +1,13 @@
-# Copyright (c) 2013 Mitchell Cooper 
+# Copyright (c) 2013 Mitchell Cooper
+# 
+# INFORMATION ABOUT API AND COMPATIBILITY
+#   
+#   This originated on IO::Async.
+#   Net::Async::HTTP is used on the IO::Async framework. Currently, all options not
+#   used directly by the base are passed to the ->do_request() method of NaHTTP.
+#   Net::Async::HTTP methods are documented for the required Foxy API at 
+#   http://search.cpan.org/~pevans/Net-Async-HTTP-0.24/lib/Net/Async/HTTP.pm
+#
 package API::Base::HTTP;
 
 use warnings;
@@ -8,7 +17,7 @@ use Net::Async::HTTP;
 use Scalar::Util 'blessed';
 use URI;
 
-our $http = Net::Async::HTTP->new;
+our $http = Net::Async::HTTP->new();
 $Foxy::loop->add($http);
 
 # does an HTTP request.
@@ -38,13 +47,13 @@ sub http_request {
     
     # do the request.
     $http->do_request(
-        %opts,
+        %opts, # comes first so the following override
         on_response => sub {
             my $response = shift;
             $main::bot->fire_event($e_name => $response, undef);
             $main::bot->delete_event($e_name);
         },
-        on_error    => sub {
+        on_error => sub {
             my $message = shift;
             $main::bot->fire_event($e_name => undef, $message);
             $main::bot->delete_event($e_name);
@@ -57,6 +66,7 @@ sub http_request {
 # unload.
 sub _unload {
     my ($class, $mod) = @_;
+    # TODO: should we cancel any pending callbacks?
     return 1;
 }
 
