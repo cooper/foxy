@@ -12,7 +12,7 @@ our $IDX = 'http://cpanidx.org/cpanidx';
 
 our $mod = API::Module->new(
     name          => 'CPAN',
-    version       => '1.4',
+    version       => '1.5',
     description   => 'provides an interface for the Comprehensive Perl Archive Network',
     depends_perl  => ['JSON'],
     depends_bases => ['Commands', 'HTTP'],
@@ -41,6 +41,16 @@ my %commands = (
         description => 'fetch information about a CPAN distribution',
         callback    => \&cmd_cpandist,
         name        => 'cpan.command.cpandist'
+    },
+    cpancore => {
+        description => 'fetch information about a core perl module',
+        callback    => \&cmd_cpancore,
+        name        => 'cpan.command.cpancore'
+    },
+    cpanmirrors => {
+        description => 'query the number of CPAN mirrors',
+        callback    => \&cmd_cpanmirrors,
+        name        => 'cpan.command.cpanmirrors'
     }
 );
 
@@ -168,7 +178,10 @@ sub cmd_cpanmod {
 
             # found info.
             $info = $info->[0];
-            $channel->send_privmsg("$$user: \2$$info{mod_name}\2 $$info{mod_vers} is part of the $$info{dist_name} $$info{dist_vers} dist by $$info{cpan_id}.");
+            $channel->send_privmsg(
+                "$$user: \2$$info{mod_name}\2 $$info{mod_vers} is part " .
+                "of the $$info{dist_name} $$info{dist_vers} dist by $$info{cpan_id}."
+            );
             
         }
     );
@@ -200,8 +213,74 @@ sub cmd_cpandist {
 
             # found info.
             $info = $info->[0];
-            $channel->send_privmsg("$$user: \2$$info{dist_name}\2 $$info{dist_vers} is by $$info{cpan_id} at $$info{dist_file}.");
+            $channel->send_privmsg(
+                "$$user: \2$$info{dist_name}\2 $$info{dist_vers} is by $$info{cpan_id}" .
+                " at $$info{dist_file}.");
             
+        }
+    );
+}
+
+# cpancore command.
+sub cmd_cpancore {
+    my ($event, $user, $channel, @args) = @_;
+    
+    # not enough args.
+    if (!scalar @args) {
+        $channel->send_privmsg("$$user: cpancore fetches information about core Perl modules.");
+        return;
+    }
+    
+    # do the request.
+    $mod->http_request(
+        uri      => "$IDX/json/corelist/$args[0]",
+        callback => sub {
+            my ($event, $response) = @_;
+            my $info = decode_json($response->content);
+            my $num  = scalar @$info;
+            
+            # none.
+            if (!$num) {
+                $channel->send_privmsg("$$user: $args[0] is not a core module.");
+                return;
+            }
+
+            # determine if the module is deprecated and when.
+            my $deprecated;
+            foreach my $ver (@$info) {
+                next unless $ver->{deprecated};
+                $deprecated =
+                    " \2DEPRECATED\2 since " . $ver->{released} . ' with perl ' .
+                    version->parse($ver->{perl_ver})->normal .
+                    ' and module version ' . $ver->{mod_vers}.q(.);
+                last; 
+            }
+
+            # found info.
+            use version 0.77;
+            $channel->send_privmsg(
+                "$$user: \2$args[0]\2 $$info[0]{mod_vers} became a core module with perl " .
+                version->parse($info->[0]{perl_ver})->normal                        .
+                ". The latest version $$info[$#$info]{mod_vers} ships with perl "  .
+                version->parse($info->[$#$info]{perl_ver})->normal.q(.) . $deprecated || q()
+            );
+            
+        }
+    );
+}
+
+# cpanmirrors command.
+sub cmd_cpanmirrors {
+    my ($event, $user, $channel, @args) = @_;
+    
+    # do the request.
+    $mod->http_request(
+        uri      => "$IDX/json/mirrors",
+        callback => sub {
+            my ($event, $response) = @_;
+            my $info = decode_json($response->content);
+            my $num  = scalar @$info;
+            $channel->send_privmsg("$$user: There are \2$num\2 official CPAN mirrors.");
         }
     );
 }
