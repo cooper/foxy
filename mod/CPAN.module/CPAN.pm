@@ -12,7 +12,7 @@ our $IDX = 'http://cpanidx.org/cpanidx';
 
 our $mod = API::Module->new(
     name          => 'CPAN',
-    version       => '1.2',
+    version       => '1.3',
     description   => 'provides an interface for the Comprehensive Perl Archive Network',
     depends_perl  => ['JSON'],
     depends_bases => ['Commands', 'HTTP'],
@@ -31,6 +31,11 @@ my %commands = (
         description => 'fetch information about a CPAN author',
         callback    => \&cmd_cpanauth,
         name        => 'cpan.command.cpanauth'
+    },
+    cpanmod => {
+        description => 'fetch information about a CPAN module',
+        callback    => \&cmd_cpanmod,
+        name        => 'cpan.command.cpanmod'
     }
 );
 
@@ -123,8 +128,42 @@ sub cmd_cpanauth {
             }
 
             # found info.
+            $info     = $info->[0];
+            my $email = uc $info->{email} eq 'CENSORED' ? q() : "($$info{email})";
+            $channel->send_privmsg("$$user: \2$$info{fullname}\2 is $$info{cpan_id} $email");
+            
+        }
+    );
+}
+
+
+# cpanmod command.
+sub cmd_cpanmod {
+    my ($event, $user, $channel, @args) = @_;
+    
+    # not enough args.
+    if (!scalar @args) {
+        $channel->send_privmsg("$$user: cpanmod fetches module information.");
+        return;
+    }
+    
+    # do the request.
+    $mod->http_request(
+        uri      => "$IDX/json/mod/$args[0]",
+        callback => sub {
+            my ($event, $response) = @_;
+            my $info = decode_json($response->content);
+            my $num  = scalar @$info;
+            
+            # none.
+            if (!$num) {
+                $channel->send_privmsg("$$user: module not found.");
+                return;
+            }
+
+            # found info.
             $info = $info->[0];
-            $channel->send_privmsg("$$user: \2$$info{fullname}\2 is $$info{cpan_id} ($$info{email})");
+            $channel->send_privmsg("$$user: \2$$info{mod_name}\2 $$info{mod_vers} is part of the $$info{dist_name} $$info{dist_vers} dist by $$info{cpan_id}.");
             
         }
     );
