@@ -13,8 +13,8 @@ our $IDX = 'http://cpanidx.org/cpanidx';
 
 our $mod = API::Module->new(
     name          => 'CPAN',
-    version       => '1.8',
-    description   => 'provides an interface for the Comprehensive Perl Archive Network',
+    version       => '1.9',
+    description   => 'provides an interface to the Comprehensive Perl Archive Network',
     depends_perl  => ['JSON'],
     depends_bases => ['Commands', 'HTTP'],
     initialize    => \&init,
@@ -90,38 +90,33 @@ sub cmd_cpandists {
     }
     
     # do the request.
-    $mod->http_request(
-        uri      => "$IDX/json/dists/$args[0]",
-        callback => sub {
-            my ($event, $response) = @_;
-            my $info = decode_json($response->content);
-            my $num  = scalar @$info;
-            
-            # none.
-            if (!$num) {
-                $channel->send_privmsg("$$user: no distributions found.");
-                return;
-            }
-            
-            # show first five.
-            my ($i, @dists) = 0;
-            foreach my $dist (@$info) {
-            
-                # too many.
-                if ($i == 5) {
-                    push @dists, 'etc';
-                    last;
-                }
-            
-                push @dists, $dist->{dist_name};
-                $i++;
-            }
-            
-            # found some.
-            $channel->send_privmsg("$$user: \2$$info[0]{cpan_id}\2 has \2$num\2 dists: ".join(', ', @dists).q(.));
-            
+    req("dists/$args[0]", $user, $channel, sub {
+        my ($event, $response, $info, $num) = @_;
+        
+        # none.
+        if (!$num) {
+            $channel->send_privmsg("$$user: no distributions found.");
+            return;
         }
-    );
+        
+        # show first five.
+        my ($i, @dists) = 0;
+        foreach my $dist (@$info) {
+        
+            # too many.
+            if ($i == 5) {
+                push @dists, 'etc';
+                last;
+            }
+        
+            push @dists, $dist->{dist_name};
+            $i++;
+        }
+        
+        # found some.
+        $channel->send_privmsg("$$user: \2$$info[0]{cpan_id}\2 has \2$num\2 dists: ".join(', ', @dists).q(.));
+        
+    });
 }
 
 # cpanauth command.
@@ -135,26 +130,21 @@ sub cmd_cpanauth {
     }
     
     # do the request.
-    $mod->http_request(
-        uri      => "$IDX/json/auth/$args[0]",
-        callback => sub {
-            my ($event, $response) = @_;
-            my $info = decode_json($response->content);
-            my $num  = scalar @$info;
-            
-            # none.
-            if (!$num) {
-                $channel->send_privmsg("$$user: author not found.");
-                return;
-            }
-
-            # found info.
-            $info     = $info->[0];
-            my $email = uc $info->{email} eq 'CENSORED' ? q() : "($$info{email})";
-            $channel->send_privmsg("$$user: \2$$info{fullname}\2 is $$info{cpan_id} $email");
-            
+    req("auth/$args[0]", $user, $channel, sub {
+    my ($event, $response, $info, $num) = @_;
+        
+        # none.
+        if (!$num) {
+            $channel->send_privmsg("$$user: author not found.");
+            return;
         }
-    );
+
+        # found info.
+        $info     = $info->[0];
+        my $email = uc $info->{email} eq 'CENSORED' ? q() : "($$info{email})";
+        $channel->send_privmsg("$$user: \2$$info{fullname}\2 is $$info{cpan_id} $email");
+        
+    });
 }
 
 
@@ -169,28 +159,23 @@ sub cmd_cpanmod {
     }
     
     # do the request.
-    $mod->http_request(
-        uri      => "$IDX/json/mod/$args[0]",
-        callback => sub {
-            my ($event, $response) = @_;
-            my $info = decode_json($response->content);
-            my $num  = scalar @$info;
-            
-            # none.
-            if (!$num) {
-                $channel->send_privmsg("$$user: module not found.");
-                return;
-            }
-
-            # found info.
-            $info = $info->[0];
-            $channel->send_privmsg(
-                "$$user: \2$$info{mod_name}\2 $$info{mod_vers} is part " .
-                "of the $$info{dist_name} $$info{dist_vers} dist by $$info{cpan_id}."
-            );
-            
+    req("mod/$args[0]", $user, $channel, sub {
+        my ($event, $response, $info, $num) = @_;
+        
+        # none.
+        if (!$num) {
+            $channel->send_privmsg("$$user: module not found.");
+            return;
         }
-    );
+
+        # found info.
+        $info = $info->[0];
+        $channel->send_privmsg(
+            "$$user: \2$$info{mod_name}\2 $$info{mod_vers} is part " .
+            "of the $$info{dist_name} $$info{dist_vers} dist by $$info{cpan_id}."
+        );
+        
+    });
 }
 
 # cpandist command.
@@ -204,27 +189,22 @@ sub cmd_cpandist {
     }
     
     # do the request.
-    $mod->http_request(
-        uri      => "$IDX/json/dist/$args[0]",
-        callback => sub {
-            my ($event, $response) = @_;
-            my $info = decode_json($response->content);
-            my $num  = scalar @$info;
-            
-            # none.
-            if (!$num) {
-                $channel->send_privmsg("$$user: distribution not found.");
-                return;
-            }
-
-            # found info.
-            $info = $info->[0];
-            $channel->send_privmsg(
-                "$$user: \2$$info{dist_name}\2 $$info{dist_vers} is by $$info{cpan_id}" .
-                " at $$info{dist_file}.");
-            
+    req("dist/$args[0]", $user, $channel, sub {
+        my ($event, $response, $info, $num) = @_;
+        
+        # none.
+        if (!$num) {
+            $channel->send_privmsg("$$user: distribution not found.");
+            return;
         }
-    );
+
+        # found info.
+        $info = $info->[0];
+        $channel->send_privmsg(
+            "$$user: \2$$info{dist_name}\2 $$info{dist_vers} is by $$info{cpan_id}" .
+            " at $$info{dist_file}.");
+        
+    });
 }
 
 # cpancore command.
@@ -238,41 +218,36 @@ sub cmd_cpancore {
     }
     
     # do the request.
-    $mod->http_request(
-        uri      => "$IDX/json/corelist/$args[0]",
-        callback => sub {
-            my ($event, $response) = @_;
-            my $info = decode_json($response->content);
-            my $num  = scalar @$info;
-            
-            # none.
-            if (!$num) {
-                $channel->send_privmsg("$$user: $args[0] is not a core module.");
-                return;
-            }
-
-            # determine if the module is deprecated and when.
-            my $deprecated;
-            foreach my $ver (@$info) {
-                next unless $ver->{deprecated};
-                $deprecated =
-                    " \2DEPRECATED\2 since " . $ver->{released} . ' with perl ' .
-                    version->parse($ver->{perl_ver})->normal .
-                    ' and module version ' . $ver->{mod_vers}.q(.);
-                last; 
-            }
-
-            # found info.
-            use version 0.77;
-            $channel->send_privmsg(
-                "$$user: \2$args[0]\2 $$info[0]{mod_vers} became a core module with perl " .
-                version->parse($info->[0]{perl_ver})->normal                        .
-                ". The latest version $$info[$#$info]{mod_vers} ships with perl "  .
-                version->parse($info->[$#$info]{perl_ver})->normal.q(.) . $deprecated || q()
-            );
-            
+    req("corelist/$args[0]", $user, $channel, sub {
+        my ($event, $response, $info, $num) = @_;
+        
+        # none.
+        if (!$num) {
+            $channel->send_privmsg("$$user: $args[0] is not a core module.");
+            return;
         }
-    );
+
+        # determine if the module is deprecated and when.
+        my $deprecated;
+        foreach my $ver (@$info) {
+            next unless $ver->{deprecated};
+            $deprecated =
+                " \2DEPRECATED\2 since " . $ver->{released} . ' with perl ' .
+                version->parse($ver->{perl_ver})->normal .
+                ' and module version ' . $ver->{mod_vers}.q(.);
+            last; 
+        }
+
+        # found info.
+        use version 0.77;
+        $channel->send_privmsg(
+            "$$user: \2$args[0]\2 $$info[0]{mod_vers} became a core module with perl " .
+            version->parse($info->[0]{perl_ver})->normal                        .
+            ". The latest version $$info[$#$info]{mod_vers} ships with perl "  .
+            version->parse($info->[$#$info]{perl_ver})->normal.q(.) . $deprecated || q()
+        );
+        
+    });
 }
 
 # cpanmirrors command.
@@ -280,47 +255,70 @@ sub cmd_cpanmirrors {
     my ($event, $user, $channel, @args) = @_;
     
     # do the request.
+    req('mirrors', $user, $channel, sub {
+        my ($event, $response, $info, $num) = @_;
+        
+        # just the number.
+        if (!scalar @args) {
+            $channel->send_privmsg("$$user: There are \2$num\2 official CPAN mirrors.");
+            return 1;
+        }
+        
+        # find a match.
+        my $mirror;
+        foreach my $dst (@$info) {
+            next unless do {
+                $@ = 0;
+                my $e = eval { $dst->{hostname} =~ m/$args[0]/ };
+                if ($@) { $channel->send_privmsg("$$user: invalid expression") and return }
+                $e;
+            };
+            $mirror = $dst;
+            last;
+        }
+        
+        # no mirror matched.
+        if (!$mirror) {
+            $channel->send_privmsg("$$user: No mirror matched that expression.");
+            return;
+        }
+        
+        my $hoster    = $mirror->{dst_organisation} ? " by $$mirror{dst_organisation}"              : q();
+        my $location  = $mirror->{dst_location}     ? " in $$mirror{dst_location}"                  : q();
+        my $bandwidth = $mirror->{dst_bandwidth}    ? " with $$mirror{dst_bandwidth} bandwidth"     : q();
+        my $updated   = $mirror->{frequency}        ? " and is updated $$mirror{frequency}"         : q();
+        
+        $channel->send_privmsg("$$user: \2$$mirror{hostname}\2 is hosted$hoster$location$bandwidth$updated.");
+    });
+}
+
+# safe request with HTTP error handler.
+sub req {
+    my ($page, $user, $channel, $callback) = @_;
     $mod->http_request(
-        uri      => "$IDX/json/mirrors",
+        uri      => "$IDX/json/$page",
         callback => sub {
-            my ($event, $response) = @_;
+            my ($event, $response, $error) = @_;
             
-            my $info = decode_json($response->content);
-            my $num  = scalar @$info;
-            
-            # just the number.
-            if (!scalar @args) {
-                $channel->send_privmsg("$$user: There are \2$num\2 official CPAN mirrors.");
-                return 1;
-            }
-            
-            # find a match.
-            my $mirror;
-            foreach my $dst (@$info) {
-                next unless do {
-                    $@ = 0;
-                    my $e = eval { $dst->{hostname} =~ m/$args[0]/ };
-                    if ($@) { $channel->send_privmsg("$$user: invalid expression") and return }
-                    $e;
-                };
-                $mirror = $dst;
-                last;
-            }
-            
-            # no mirror matched.
-            if (!$mirror) {
-                $channel->send_privmsg("$$user: No mirror matched that expression.");
+            # no response - HTTP error.
+            if (!defined $response) {
+                $channel->send_privmsg("$$user: HTTP error: $error");
                 return;
             }
             
-            my $hoster    = $mirror->{dst_organisation} ? " by $$mirror{dst_organisation}"              : q();
-            my $location  = $mirror->{dst_location}     ? " in $$mirror{dst_location}"                  : q();
-            my $bandwidth = $mirror->{dst_bandwidth}    ? " with $$mirror{dst_bandwidth} bandwidth"     : q();
-            my $updated   = $mirror->{frequency}        ? " and is updated $$mirror{frequency}"         : q();
+            # decode JSON.
+            my $info = decode_json($response->content);
             
-            $channel->send_privmsg("$$user: \2$$mirror{hostname}\2 is hosted$hoster$location$bandwidth$updated.");
+            # no info or $info is not arrayref.
+            if (!$info || ref $info ne 'ARRAY') {
+                $channel->send_privmsg("$$user: JSON decode error");
+                return;
+            }
+            
+            $callback->($event, $response, $info, scalar @$info);
         }
     );
+    return 1;
 }
 
 $mod

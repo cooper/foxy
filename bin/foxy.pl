@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '1.3';
+our $VERSION = '1.4';
 
 our %dir;
 BEGIN {
@@ -126,7 +126,7 @@ sub apply_irc_handlers {
         }
         
         my $command = lc $args[0];
-        $command    =~ m/^\!(\w+)$/ or return; $command = $1;
+        $command    =~ m/^\!([\w\.-_]+)$/ or return; $command = $1;
         @args       = @args[1..$#args];
         
         # fire command.
